@@ -1,0 +1,159 @@
+---
+title: "Assessed Practical 3"
+author: "Freya Dover"
+date: "2023-05-11"
+output: html_document
+theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+```{r}
+DP_nt <- function(match_score,mismatch_score,gap_score,sequence_1,sequence_2){
+  
+
+len_seq1 = nchar(sequence_1)
+len_seq2 = nchar(sequence_2)
+
+
+seq1 <- vector(mode="character", length=len_seq1)
+for (i in 1:len_seq1)
+  
+  {seq1[i] <- substr(sequence_1,i,i)}
+  seq2 <- vector(mode="character", length=len_seq2)
+  for (i in 1:len_seq2)
+  
+  {seq2[i] <- substr(sequence_2,i,i)}
+  
+DPmatrix <- matrix(0,len_seq2+1,len_seq1+1)
+
+traceback_v <- matrix(0,len_seq2+1,len_seq1+1)
+traceback_h <- matrix(0,len_seq2+1,len_seq1+1)
+traceback_d <- matrix(0,len_seq2+1,len_seq1+1)
+
+
+for (i in 1:len_seq1)
+{for (j in 1:len_seq2)
+{if (seq1[i] == seq2[j])
+{s_ji = match_score} else {s_ji = mismatch_score}
+  
+horizontal_score = DPmatrix[j+1,i] + gap_score
+vertical_score = DPmatrix[j,i+1] + gap_score
+diagonal_score = DPmatrix[j,i] + s_ji
+max_score = max(c(vertical_score, horizontal_score,
+diagonal_score))
+DPmatrix[j+1,i+1] = max_score
+
+if (max_score == vertical_score)
+{traceback_v[j+1,i+1] = 1}
+
+if (max_score == horizontal_score)
+{traceback_h[j+1,i+1] = 1}
+
+if (max_score == diagonal_score)
+{traceback_d[j+1,i+1] = 1}}}
+
+alnseq1 <- vector(mode="character", length=len_seq1+len_seq2)
+alnseq2 <- vector(mode="character", length=len_seq1+len_seq2)
+alnpos = len_seq1 + len_seq2
+
+lastcolumn<- DPmatrix[,len_seq1+1]
+lastrow<-DPmatrix[len_seq2+1,]
+
+max_align_score<- max(c(max(lastrow),max(lastcolumn)))
+
+if(max_align_score==max(lastcolumn))
+  {j0<-which.max(lastcolumn)-1
+  i0<-len_seq1}
+else
+  {j0<-len_seq2
+  i0<-which.max(lastrow)-1}
+
+while (i0 >= 0 && j0 >= 0)
+{if (1 == traceback_d[j0+1,i0+1])
+  
+{alnseq1[alnpos] = seq1[i0]
+alnseq2[alnpos] = seq2[j0]
+i0 = i0 - 1
+j0 = j0 - 1}
+  else if (1 == traceback_h[j0+1,i0+1]) 
+{alnseq1[alnpos] = seq1[i0]
+alnseq2[alnpos] = "-"
+i0 = i0 - 1}
+  
+else if (1 == traceback_v[j0+1,i0+1]) 
+{10
+alnseq1[alnpos] = "-"
+alnseq2[alnpos] = seq2[j0]
+j0 = j0 - 1}
+else {break}
+alnpos = alnpos - 1}
+
+print(paste(alnseq1,collapse = ""))
+print(paste(alnseq2,collapse = ""))
+}
+```
+
+## Test-runs for Question 1:
+
+
+#### Test-run 1
+
+```{r}
+DP_nt(1,-1,-2,"CTTCACACTCAAAGGCGGTGCACCAACAAAGGTTACTTTTGGTGATGACACTGTGATAGA",
+"CCTACTTTGTTCAGACTCAAAGGTGGTGCGCCTCCCAAAGGAGTTAAGTTTGGTGGCGAA")
+
+```
+
+#### Test-run 2
+
+```{r}
+DP_nt(1,-1,-2,"CTTCACACTCAAAGGCGGTGCACCAACAAAGGTTACTTTTGGTGATGACACTGTGATAGA",
+"AGGTGCCCCTACAAAGGGAGTCACATTTGGTGAAGACACAGTTGTGGAAATCCAGGGTTA")
+```
+
+#### Test-run 3
+
+```{r}
+DP_nt(1,-1,-1,"CTTCACACTCAAAGGCGGTGCACCAACAAAGGTTACTTTTGGTGATGACACTGTGATAGA",
+"AGGTGCCCCTACAAAGGGAGTCACATTTGGTGAAGACACAGTTGTGGAAATCCAGGGTTA")
+```
+
+#### Test-run 4
+
+```{r}
+DP_nt(1,-2,-1,"CTTCACACTCAAAGGCGGTGCACCAACAAAGGTTACTTTTGGTGATGACACTGTGATAGA",
+"AGGTGCCCCTACAAAGGGAGTCACATTTGGTGAAGACACAGTTGTGGAAATCCAGGGTTA")
+```
+
+## Question 2
+
+#### (i)
+```{r}
+DP_nt(1,-1,-2,"AGTGTT", "CAATG")
+```
+
+#### (ii)
+```{r}
+DP_nt(1,-1,-2,"GGTAATG","CTAGTGTT")
+```
+
+#### (iii)
+```{r}
+DP_nt(1,-1,-2,"GGGGGGCTCCAAGCCCAGAACACCAAGGGGCCCAAAAA","CTCCGACCCAGCACCACGTGGC")
+```
+
+#### (iv)
+```{r}
+DP_nt(1,-1,-2,"ATGGAGAGCCTTGTCCCTGGTTTCAACGAGAAAACACACGTCCTC", "GTCCCCGGGTTTAATGAGAGGACTCATGTCCTCCTCAGTTTGCCTGTT")
+```
+
+#### (v)
+```{r}
+DP_nt(1,-1,-1, "ATGGAGAGCCTTGTCCCTGGTTTCAACGAGAAAACACACGTCCTC", "GTCCCCGGGTTTAATGAGAGGACTCATGTCCTCCTCAGTTTGCCTGTT")
+```
+
