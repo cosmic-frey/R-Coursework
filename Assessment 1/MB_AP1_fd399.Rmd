@@ -1,0 +1,227 @@
+---
+title: "Mathematical Biology Xmas Project"
+author: "Freya Dover"
+date: "20-12-2022"
+output: 
+  html_document: 
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: paper
+---
+
+```{r echo=FALSE}
+xmasdata <- read.csv("xmasdataset.csv" , stringsAsFactors = TRUE)
+```
+
+
+#### **The Data Set**
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+
+library(knitr)
+kable(xmasdata[1:30, ], )
+```
+
+#### **Summary Statistics Table**
+
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+library(tidyverse)
+
+group_by(xmasdata, sex) %>% 
+  summarise(
+  mean = mean(length),
+  median = median(length),
+  min = min(length),
+  max = max(length),
+  sd = sd(length))
+
+length <- xmasdata$length
+sex <- xmasdata$sex
+library(ggplot2)
+ggplot(data = data.frame(length, sex), aes(x = sex, y = length, color = sex)) +   geom_point() +  geom_smooth(method = "lm") +  labs(title="Visualising Skew with a Scatter Plot") + scale_colour_manual(values = c("purple" , "turquoise"))
+
+
+```
+The mean and median lengths for females are very similar, indicating that this data for females is normally distributed, and that the mean is the most useful measure of central tendency for the length of females. The standard deviation of lengths of females is far smaller than the standard deviation of male lengths. There is also a far smaller range of female lengths (29.3 - 10.6 = 18.7) compared to male lengths, suggesting that female fish are more uniform in size whereas male fish sizes vary more (range of male lengths: 90.8 - 8 = 82.80).
+
+The mean and median lengths for males show some variability, indicating that the size data for males is not normally distributed, suggests that the most useful measure of central tendency for the lengths of males would be the median. When plotting this data onto a scatter plot, we can visualise the skew in the lengths of males, which solidifies that the median is the most appropriate measure of central tendency for the lengths of males.
+
+
+
+#### **Binomial Test**
+
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+count(xmasdata)
+count(filter(xmasdata, sex == "male"))
+count(filter(xmasdata, sex == "female"))
+
+library(stats)
+males <- 17
+females <- 13
+result <- binom.test(males, males + females, p = 0.5)
+print(result$p.value)
+
+binom.test(males, males + females, p = 0.5)
+```
+
+H~0~: p equals 0.5\
+
+H~1~: p does-not-equal 0.5
+
+0.5847 > 0.05, therefore we do not reject the null hypothesis that the sex ratio of the sample does not deviate from 1:1
+
+(two-tailed binomial test, n=17, p<0.05)
+
+
+#### **Boxplot of size against sex**
+
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+
+dataF = (filter(xmasdata , sex == "female"))
+dataM = (filter(xmasdata , sex == "male"))
+ggplot() + stat_boxplot(geom = "errorbar", width = 0.5) +
+  geom_boxplot(data = dataF, aes(x=sex, y=length),fill = "lavender", colour = "black") +
+  geom_boxplot(data = dataM, aes(x=sex, y=length),fill = "turquoise", colour = "black") + stat_boxplot(geom = "errorbar", width = 0.5) +
+  labs(x="Sex", y="Length (cm)",title = "Fish Boxplots")
+
+
+```
+
+As well as the information on mean, median and range covered in the summary statistics section of this report, we can reaffirm that the female size data is normally distributed, whereas the male size data is positively skewed.
+
+We can also use these boxplots to examine which (if any) of the data points in the male and female groups are outliers, or use the summary statistics calculated above. Alternatively, we can check these outliers by calculating the inter-quartile-range (IQR).
+
+From the boxplots, we can see that outliers exist in both the male and the female datasets, further calculations could be carried out to eliminate these, or even creating diagnostic plots for the data to evaluate whether these outliers have significant effects on the distribution of the data.
+
+
+
+#### **Welch Two Sample t-test and non-parametric test**
+
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+dataF = (filter(xmasdata , sex == "female"))
+dataM = (filter(xmasdata , sex == "male"))
+
+t.test(length ~ sex,data= xmasdata)
+
+wilcox.test(length ~ sex,data= xmasdata)
+```
+
+**For the Welch two sample t-test:**
+In this situation the Welch two sample t-test was the best test to use, as the  variances of the two groups are not equal(as seen from the previous boxplots), and the sample sizes are relatively small.It is also a robust test, meaning it is not greatly affected by small deviations from the assumptions of normality. Additionally, the Welch t-test is more powerful than the standard independent t-test when the variances of the two groups are not equal, which makes it a better choice in those situations.
+
+0.03919 < 0.05 , so we should reject the null hypthesis that there is no difference between the two true mean lengths of males and females. the difference between the mean lengths of males and females appears to be statistically significant.
+(Welch two sample t-test, n~1~=12, n~2~=16, p<0.05)
+
+
+**For the Wilcoxon rank sum non-parametric test:**
+A Wilcoxon rank-sum testis the best test to choose, as this is a situation where the data is not normally distributed and has a small sample size. The test does not rely on the assumption of normality, making it a robust alternative to parametric tests such as the t-test when the data does not meet the assumptions of normality. Additionally, the Wilcoxon rank-sum test is more powerful than the t-test when the sample sizes are small, which makes it a better choice in these situations.
+
+0.3051 > 0.05 , so do not reject the null hypothesis as the observed deviation from the hypothesised population median for length is statistically insignificant.
+
+#### **Histograms**
+
+```{r}
+print(dataF)
+
+ggplot(dataF, aes(x=length)) + 
+  geom_histogram(bins=10 , fill = "lavender", colour = "black") + ggtitle("Female Fish")
+
+print(dataM)
+
+ggplot(dataM, aes(x=length)) + 
+  geom_histogram(bins=10 , fill = "turquoise", colour = "black") + ggtitle("Male Fish")
+```
+
+As we observed when analysing our summary statistics and boxplots, the female lengths appear to symmentrical in distribution (normally distributed), whereas the male lengths appear to be positively skewed and not normally distributed. As male lengths are not normally distributed, a t-test may not be a valid statistical test to use. In this case, results from the Wilcoxon rank sum test could hold more validity.
+
+In addition, the histogram for the male size data has a greater spread and therefore a greater variance than the female size data, meaning that the variances of the two groups are not homogeneous. As t-tests assume homogeneity between the variances of the two groups, the t-test previously carried out may not have been a valid statistical test.
+
+
+#### **Log-transformed data**
+
+Log transforming data can be useful when working with data that is not normally distributed and has a large range of values. This is because log transformation can help to reduce the impact of outliers and can make the data more symmetric.
+Log transforming data can make the data more amenable to parametric statistical methods, which assume normality, make patterns and relationships in the data more clear and interpretable, and it stabilize the variance of the data (so that the variance is roughly constant across the range of the data). Another advantage of log-transforming data, is that it can make the data more ameanable for machine-learning algorithms, but this point is off topic as we shall not be discussing it here.
+
+As we are log transforming this data it is also important to note that we would not be able to transform data points which held no value (zero), of were negative. Thankfully, that is not applicable to this data-set.
+```{r}
+
+library(dplyr)
+xmasdatalog <- xmasdata %>% mutate(log_length = log(length))
+
+library(knitr)
+kable(xmasdatalog[1:30, ], )
+```
+
+#### **Welch Two Sample t-test and non-parametric test with log-transformed data**
+
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+t.test(log_length ~ sex,data= xmasdatalog)
+
+wilcox.test(log_length ~ sex,data= xmasdatalog)
+
+```
+**For the Welch two sample t-test with log-transformed data:** 
+
+There are several advantages to doing a welch two sample t-test on log transformed data./
+
+1) Log transformation can make the data more normally distributed, which is an assumption of the t-test. This can increase the power and accuracy of the test.
+
+2) Log transformation can stabilize the variances between the two groups being compared, which is an assumption of the Welch t-test. This can help to reduce the risk of a type II error (false negative) and increase the power of the test.
+
+
+0.07278 > 0.05 , so we should not reject the null hypothesis that there is no true difference between the mean lengths of females and males. Therefore there is no statistically significant difference between he mean length of females and the mean length of males.
+(Welch two sample t-test, n~1~=11, n~2~=15, p<0.05)
+
+**For the Wilcoxon rank sum non-parametric test with log-transformed data:**
+There are many advantages of doing a wilcoxon rank sum non-parametric test with log transformed data/
+
+1) Log transformation can make the data more symmetric, which improves the performance of non-parametric tests. The Wilcoxon rank-sum test does not rely on the assumption of normality, so the data does not have to be normally distributed.
+
+2) Log transformation can stabilize the variances between the two groups being compared, which can help to reduce the risk of a type II error (false negative) and increase the power of the test.
+
+3) Log transformation can improve the robustness of the Wilcoxon rank-sum test against outliers and non-normality, making it a more robust alternative to parametric tests such as the t-test when the data does not meet the assumptions of normality.
+
+0.3051 > 0.05 , so do not reject the null hypothesis as the observed deviation from the hypothesised population median for length is statistically insignificant.
+
+The results from the Welch two sample t-test and the Wilcoxon rank sum test agree with each other, and both suggest that the null hypothesis should not be rejected.
+
+#### **Histograms with log-transformed data**
+```{r, error=FALSE , warning=FALSE , message=FALSE}
+library(dplyr)
+dataFlog <- dataF %>% mutate(log_length = log(length))
+dataMlog <- dataM %>% mutate(log_length = log(length))
+
+ggplot(dataFlog, aes(x=log_length)) + 
+  geom_histogram(bins=10 , fill = "lavender", colour = "black") + ggtitle("Female Fish: log_length")
+
+ggplot(dataMlog, aes(x=log_length)) + 
+  geom_histogram(bins=10 , fill = "turquoise", colour = "black") + ggtitle("Male Fish: log_length")
+```
+
+With the log-transformed size data, the spread of the histagram for the log length of male fish is still comparitively slightly greater than that of the log length of female fish, but the difference in varience is comparitively less than was seen with the data pre-transformation.
+
+Even with the log-transformed size data, the male log lengths are still positively skewed, whith the female log lengths remaining symmetrically dstributed (and therefore forming a normal distribution). We can check this analysis by comparing the histograms formed from log-transformed size data with the boxplots for fish log length below. As we can see, the boxplots show that the female log lengths are approximately normally distributed, but the male log lengths are still positively skewed, just comparitively less strongly positively skewed than the pre-transformation boxplots. As we can see, outliers still exist in the female dataset. Further calculations could be carried out to eliminate these, or even creating diagnostic plots for the data to evaluate whether these outliers have significant effects on the distribution of the data.
+
+
+```{r}
+ggplot()+
+geom_boxplot(data = dataFlog, aes(x=sex, y=log_length),fill = "lavender", colour = "black") + geom_boxplot(data = dataMlog, aes(x=sex, y=log_length),fill = "turquoise", colour = "black") + labs(x="Sex", y="Log_Length (cm)",title = "Fish Boxplots with log_length")
+```
+
+
+
+#### **Conclusion**
+
+Our main question throughout this report was to evaluate, through statistical analysis, whether there were statistically significant diferences between the lengths of female and male fish. Although we did not plot diagnostic plots to analyse the effects of outliers within the dataset, this could always be continued later and then repeated after the removal of the outliers.
+
+Through conducting a binomial hypothesis test (two-tailed), the test concluded that there was no statistically significant difference between the sex ratio of the fish, and therefore the sex ratio of fish does not deviate from the 1:1 ratio, resulting in us accepting our null hypothesis.(two-tailed binomial test, n=17, p<0.05)
+
+The summary statistics showed that for the female size data, the mean was the most useful measure of central tendency and for the male size data that the median was the most appropriate measure of central tendency. This is because median lengths for females are very similar, indicating that this data for females is normally distributed whereas the mean and median lengths for males show some variability, indicating that the size data for males is not normally distributed. The boxplots for length reaffirmed that the male size data was positively skewed, whereas the female size data was normally distributed. We were also able to identify outliers that existed in both the male and the female datasets. It was therefore suggested that further calculations could be carried out to eliminate these, or even the creating diagnostic plots for the data to evaluate whether these outliers have significant effects on the distribution of the data.
+
+Despite the male size data being positively skewed, a welch two sample t-test was carried out, which concluded that the difference between the true means were statistically significant. In this situation the Welch two sample t-test was the best test to use, as the variances of the two groups are not equal(as seen from the previous boxplots), and the sample sizes are relatively small.It is also a robust test, meaning it is not greatly affected by small deviations from the assumptions of normality. Additionally, the Welch t-test is more powerful than the standard independent t-test when the variances of the two groups are not equal, which makes it a better choice in those situations. A non-parametric Wilcoxon rank sum test was carried out due to the fact that the data did not match the assumptionf of the t-test as the data was not normally distributed  in the male data set. This test opposed the results of the t-test and concluded that the hypothesised population median for length is statistically insignificant. A Wilcoxon rank-sum test was the best test to choose, as this was a situation where the data was not normally distributed and has a small sample size. The test does not rely on the assumption of normality, making it a robust alternative to parametric tests such as the t-test when the data does not meet the assumptions of normality. Additionally, the Wilcoxon rank-sum test is more powerful than the t-test when the sample sizes are small, which makes it a better choice in these situations. The histograms produced from the male and female size data after conducting both the t-test and the wilcoxon non-parametric test, reaffirmed that the male size data was positively skewed and that the female size data was symmetrically distributed. As the male size data was not normally distributed, the t-test previously carried out was not an appropriate statistical test.  Agreeing again with previous conclusions, the histograms revealed that the variances for the male and female size data were not homogeneous and therefore the t-test previously carried out was not an appropriate statistical test.
+
+The size data was now log tranformd and seperated into data frames by sex to include the log(lengths) as opposed to the pre-transformation lengths used previously. Log transforming the data was useful as we are working with data that is not normally distributed and has a large range of values. This is because log transformation can help to reduce the impact of outliers and can make the data more symmetric. Log transforming data can make the data more amenable to parametric statistical methods, which assume normality, make patterns and relationships in the data more clear and interpretable, and it stabilize the variance of the data (so that the variance is roughly constant across the range of the data).
+
+A Welch Two Sample t-test was carried out with the log-transformed size data, which concluded that there was no statistically significant difference between he mean length of females and the mean length of males. It was beneficial to conduct a Welch Two Sample t-test on the log-transformed data, as log transformation can make the data more normally distributed, which is an assumption of the t-test (this can also increase the power and accuracy of the test), and log transformation can stabilize the variances between the two groups being compared, which is an assumption of the Welch t-test (which can help reduce the risk of false negatives and increase the overall power of the test). A Wilcoxon rank sum test carried out on the same log-transformed size data agreed with the t-test, suggesting that the null hypothesis should not be rejected. It was beneficial to perform this specific non-parametric test on the log-transformed data, as this kind of transformation can make the data more symmetric which improves the performance of this test. The Wilcoxon rank-sum test does not rely on the assumption of normality, so the data does not have to be normally distributed. The Log transformation can improve the robustness of the Wilcoxon rank-sum test against outliers and non-normality, making it a more robust alternative to parametric tests such as the t-test when the data does not meet the assumptions of normality.
+
+Histograms formed from the log-transformed size data showed a significant decrease in the difference between variances in the log(lengths) of males and females. However the log-transformed male size data was still positively skewed. When compared to a boxplot formed from the log-transformed size data the strength of the positive skew for male lengths had decreased from that of the pre-transformed data. Again, if these tests were to be repeated, further calculations should be carried out to identify the outliers, diagnostic plots should be created using this data and if the outliers do affect the distribution of these plots, they should be removed from the dataset. This would decrease the already small sample size, so perhaps further sampling should be carried out to increase how representative these findings are to the whole population of these fish species.
