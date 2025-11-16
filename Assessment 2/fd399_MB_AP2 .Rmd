@@ -1,0 +1,202 @@
+---
+title: "Assessed Practical 2"
+author: Freya Dover
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# IMPORTANT: PACKAGE DESOLVE MUST BE INSTALLED ON YOUR COMPUTER BEFORE RUNNING ANY CODE
+library(deSolve)
+
+```
+
+# Question 1
+ 
+ Within our SIR model we have three variables which represent the three different states present within the population:
+ 
+ * S = Susceptible
+ * I = Infectious
+ * R = Recovered
+ 
+ However, because the population size is constant (further explained below) the state of being 'recovered' does not need to be modelled by a third seperate equation as we know that:
+ 
+ R = N-(S+I)
+ 
+ (Where N=The total population size)
+ 
+ This can also be explained through the use of differential equations:
+
+In an SIR model, the total population is constant, which means that the change in total population size ,N, is going to be zero (as described below)
+
+ $$
+ \frac{dN}{dT}=0
+ $$
+ This is because the change in total population size  over time is composed of the sum of all susceptible, infectious and recovered individuals in the population (as this SIR model models a closed system with no immigration or emmigration)
+ $$
+ \frac{dN}{dT} = \frac{dS}{dT} + \frac{dI}{dT} + \frac{dR}{dT}
+ $$
+ This simple definition of what we mean by our change in total population size over time (described above), can be rearranged as follows in order to eliminate the term which models the rate of change of recovered individuals over time: 
+ $$
+\frac{dN}{dT} = -(\frac{dS}{dT} + \frac{dI}{dT})
+ $$
+
+ 
+
+
+
+
+# Question 2
+
+```{r}
+R0_calc <- function(b,g,N)
+{
+   R0 <- b*N/g
+  plot(g,R0,type="l",xlab = 'gamma',main = 'Rate of Reproduction vs Rate of Recovery')
+  abline (h=1, col="red")
+  text(3, 2, "R0 = 1")
+}
+R0_calc(0.02,seq(from = 0.2, to = 4, by = 0.01),100)
+
+  
+```
+
+# Question 3a
+
+```{r}
+SIR_dydt <- function(t,y,par)
+{
+  S <- y[1]
+  I <- y[2]
+  beta <- par[1]
+  gamma <- par[2]
+  
+  dS <- -beta*S*I
+  dI <- beta*S*I-gamma*I
+  return(list(c(dS,dI)))
+  }
+
+
+S<-c(seq(10,80,10))
+storage <- c()
+for (i in S) {
+  
+
+dI <- 0.02*i*1-1*1
+storage <-c(storage,dI)
+
+}
+print(storage)
+
+```
+
+# Question 3b
+```{r}
+for (i in 2:length(storage)) {
+  if (sign(storage[i]) != sign(storage[i - 1])) {
+    critical_density <- S[i]
+    break
+  }
+}
+print(paste("Critical density of susceptible individuals:", critical_density))
+```
+
+S must be larger than 50. This is because there is a change of sign when dI/dt smaller than 50 compared to larger than 50 (negative when below 50 and positive when above 50). An epidemic will not occur when dI/dt is negative. This was also tested in the code above which returned a critical density of 50.
+
+# Question 4
+
+```{r, warning = FALSE}
+
+beta <-0.02
+gamma <- 1
+I0 <- 0.1
+S0 <- 99.9
+t <- seq(0,20,0.1)
+
+SIR_sol_1 <- ode(c(S0,I0), t, SIR_dydt, c(beta,gamma))
+plot(SIR_sol_1[,2],SIR_sol_1[,3],type='l', main = 'SI phase plane', xlab =('S(t)'), ylab =('I(t)'))
+
+nullclineS <- seq(0, max(SIR_sol_1[, 1]), length.out = 100)
+nullclineI <- rep(gamma/beta, 100)
+lines(nullclineS, nullclineI, col = 'red', lty = 2)
+lines(nullclineS, rep(0, 100), col = 'blue', lty = 2)
+legend('topright', legend = c('dS/dt = 0', 'dI/dt = 0'), col = c('red', 'blue'), lty = 2)
+
+S_values <- seq(0, max(SIR_sol_1[, 2]), length.out = 10)
+I_values <- seq(0, max(SIR_sol_1[, 3]), length.out = 10)
+
+for (s in S_values) {
+  for (i in I_values) {
+    dydt <- SIR_dydt(0, c(s, i), c(beta, gamma))
+    dx <- dydt[[1]][1]
+    dy <- dydt[[1]][2]
+    arrows(s, i, s + dx * 0.1, i + dy * 0.1, length = 0.1, col = "orange")
+  }
+}
+
+
+
+
+```
+
+# Question 5
+```{r}
+R<-100-SIR_sol_1[1:201,2]-SIR_sol_1[1:201,3]
+R<-round(R,3)
+
+plot(SIR_sol_1[,2],type='l',ylim=c(0,100), main = 'SIR Model', xlab = "Time", ylab = 'Population', col = 'blue')
+lines(SIR_sol_1[,3],type='l', col = 'red')
+lines(R,type='l', col = 'green')
+legend(x=5, y=50, legend = c('S(t)','I(t)','R(t)'), fill = c("blue","red","green"), )
+
+```
+
+# Question 6a
+```{r}
+fes_eq <- function(f,r0)
+{
+  1-f-exp(-r0*f)
+
+}
+
+```
+
+# Question 6b
+```{r}
+plot(seq(0,1,0.01),fes_eq(seq(0,1,0.01),2), type ='l',xlab = 'f', ylab = 'fes_eq')
+```
+
+# Question 6c
+```{r}
+fes0 <-  fes_eq(1,2)
+f<-1
+while(fes0 <= 0)
+  {
+fes0 <- fes_eq(f-0.01,2)
+f<-f-0.01
+}
+print(paste("The final epidemic size is f =",f) )
+```
+
+# Question 6d
+```{r}
+fes_sol <- function(r0)
+{
+  f<-1
+  fes0<- 1-f-exp(-r0*f)
+while(fes0 <= 0)
+  {
+fes0 <- fes_eq(f-0.01,r0)
+f<-f-0.01
+}
+  return(f)
+}
+
+```
+
+# Question 6e
+```{r}
+plot(seq(1.1,6,0.01),lapply(seq(1.1,6,0.01),fes_sol), type='l', xlab = 'R0', ylab = 'Final Epidemic Size',)
+
+```
